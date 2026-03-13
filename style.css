@@ -439,10 +439,10 @@ button {
     text-align: center;
 }
 
-.delete-event-btn,
+/* .delete-event-btn,
 .clear-all {
     display: none;
-}
+} */
 
 .edit-mode .delete-event-btn,
 .edit-mode .delete-btn,
