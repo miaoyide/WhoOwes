@@ -275,6 +275,8 @@ function renderMemberSelectors() {
         
         container.appendChild(chip);
     });
+
+    updateParticipantLabel();
 }
 
 function updatePayerSelect() {
@@ -323,10 +325,19 @@ async function fetchExpenses() {
     });
 
     members = Array.from(allNames);
-    selectedParticipants = [...members];
+    // 只有第一次才初始化，之後保留使用者的勾選狀態
+    if (selectedParticipants.length === 0) {
+        selectedParticipants = [...members];
+    } else {
+        // 過濾掉已經不在 members 裡的人
+        selectedParticipants = selectedParticipants.filter(p => members.includes(p));
+        // 把新成員加進去
+        members.forEach(m => {
+            if (!selectedParticipants.includes(m)) selectedParticipants.push(m);
+        });
+    }
 
     render();
-    renderMemberSelectors();
     updatePayerSelect();
     hideLoading();
 }
@@ -399,6 +410,8 @@ function render() {
     const selector = document.getElementById('memberSelector');
     selector.innerHTML = members.map(m => `<div class="member-chip ${selectedParticipants.includes(m) ? 'active' : ''}" onclick="toggleParticipant('${m}')">${m}</div>`).join('');
 
+    updateParticipantLabel();
+
     const payerSelect = document.getElementById('itemPayerSelect');
     const prev = payerSelect.value;
     payerSelect.innerHTML = members.map(m => `<option value="${m}" ${m === prev ? 'selected' : ''}>${m}</option>`).join('');
@@ -439,9 +452,9 @@ function render() {
     const debtors = [];
 
     for (let name in balances) {
-        const bal = Math.round(balances[name]);
-        if (bal > 1) creditors.push({ name, amount: bal });
-        if (bal < -1) debtors.push({ name, amount: -bal });
+        const bal = balances[name];
+        if (bal > 0.01) creditors.push({ name, amount: Math.ceil(bal) });
+        if (bal < -0.01) debtors.push({ name, amount: Math.ceil(-bal) });  // 先轉正再 ceil
     }
 
     const transactions = [];
@@ -484,20 +497,6 @@ function render() {
     expenses.forEach(item => {
         if (paid[item.payer] !== undefined) paid[item.payer] += parseFloat(item.amount);
     });
-    const totalAmount = expenses.reduce((sum, item) => sum + parseFloat(item.amount), 0);
-
-    document.getElementById('paidReport').innerHTML = `
-        ${members.map(m => `
-            <div class="report-item">
-                <span>${m}</span>
-                <span>$${Math.round(paid[m])}</span>
-            </div>
-        `).join('')}
-        <div class="report-item" style="border-top: 1px solid #ddd; margin-top: 8px; padding-top: 8px;">
-            <span><b>總計</b></span>
-            <span><b>$${Math.round(totalAmount)}</b></span>
-        </div>
-    `;
 
     // 應付總額
     const spent = {};
@@ -505,20 +504,40 @@ function render() {
     expenses.forEach(item => {
         const perPerson = parseFloat(item.amount) / item.participants.length;
         item.participants.forEach(p => {
-            if (spent[p] !== undefined) spent[p] += perPerson;
+            if (spent[p] !== undefined) spent[p] += perPerson;  // 保留小數累積
         });
     });
 
-    document.getElementById('spentReport').innerHTML = `
-        ${members.map(m => `
-            <div class="report-item">
-                <span>${m}</span>
-                <span>$${Math.round(spent[m])}</span>
+    const totalAmount = expenses.reduce((sum, item) => sum + parseFloat(item.amount), 0);
+
+    document.getElementById('detailReport').innerHTML = `
+        <div class="detail-table">
+            <div class="detail-header">
+                <span>姓名</span>
+                <span>代墊</span>
+                <span>應付</span>
+                <span>結餘</span>
             </div>
-        `).join('')}
-        <div class="report-item" style="border-top: 1px solid #ddd; margin-top: 8px; padding-top: 8px;">
-            <span><b>總計</b></span>
-            <span><b>$${Math.round(totalAmount)}</b></span>
+            ${members.map(m => {
+                const paidRounded = Math.round(paid[m]);
+                const spentRounded = Math.round(spent[m]);
+                const balance = paid[m] - spent[m];
+                return `
+                <div class="detail-row">
+                    <span>${m}</span>
+                    <span>$${Math.round(paid[m])}</span>
+                    <span>$${spent[m].toFixed(1)}</span>
+                    <span class="${balance > 0 ? 'status-plus' : balance < 0 ? 'status-minus' : ''}">
+                        ${balance > 0 ? '+' : ''}$${balance.toFixed(1)}
+                    </span>
+                </div>`;
+            }).join('')}
+            <div class="detail-footer">
+                <span><b>總計</b></span>
+                <span><b>$${Math.round(totalAmount)}</b></span>
+                <span></span>
+                <span></span>
+            </div>
         </div>
     `;
 
@@ -536,7 +555,7 @@ function render() {
             list.innerHTML += `<div class="list-item">
                 <div class="item-info">
                     <div class="item-desc">${item.description}</div>
-                    <div class="item-sub">買單：<b>${item.payer}</b><br/>分攤: ${item.participants.join(', ')}</div>
+                    <div class="item-sub">買單：<b>${item.payer}</b> </br> ${item.participants.length} 人分攤: ${item.participants.join(', ')}</div>
                 </div>
                 <div class="item-price">$${Math.round(item.amount)}<span class="delete-btn" onclick="deleteItem(${item.id}, '${item.description}')">×</span></div>
             </div>`;
@@ -544,19 +563,25 @@ function render() {
     });
 }
 
-function switchTab(tab) {
+function switchTab(tab, e) {
     document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-    event.target.classList.add('active');
+    e.target.classList.add('active');
 
     document.getElementById('settlementReport').style.display = tab === 'settlement' ? 'block' : 'none';
-    document.getElementById('paidReport').style.display = tab === 'paid' ? 'block' : 'none';
-    document.getElementById('spentReport').style.display = tab === 'spent' ? 'block' : 'none';
+    document.getElementById('detailReport').style.display = tab === 'detail' ? 'block' : 'none';
+}
+
+function updateParticipantLabel() {
+    const count = selectedParticipants.length;
+    document.getElementById('participantLabel').innerText = `分攤成員（已選 ${count} 人）`;
 }
 
 function toggleParticipant(name) {
     selectedParticipants = selectedParticipants.includes(name) ? selectedParticipants.filter(m => m !== name) : [...selectedParticipants, name];
     render();
+    updateParticipantLabel();
 }
+
 function handleMemberKey(e) {
     if (e.key === 'Enter') {
         const name = e.target.value.trim();

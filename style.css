@@ -511,3 +511,30 @@ button {
 @keyframes spin {
     to { transform: rotate(360deg); }
 }
+
+.detail-table {
+    width: 100%;
+}
+
+.detail-header, .detail-row, .detail-footer {
+    display: grid;
+    grid-template-columns: 2fr 2fr 2fr 2fr;
+    padding: 6px 0;
+    font-size: 13px;
+    align-items: center;
+}
+
+.detail-header {
+    font-weight: bold;
+    color: #999;
+    font-size: 12px;
+    border-bottom: 1px solid #ddd;
+    padding-bottom: 8px;
+    margin-bottom: 4px;
+}
+
+.detail-footer {
+    border-top: 1px solid #ddd;
+    margin-top: 4px;
+    padding-top: 8px;
+}
