@@ -8,16 +8,117 @@
     --danger: #ea4335;
 }
 
+* {
+    box-sizing: border-box;
+}
+
+select {
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none; /* 拔掉預設箭頭 */
+
+    /* 加入自定義的箭頭（這是一個簡單的 SVG 下箭頭） */
+    background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%23cccccc%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center; /* 靠右邊 10px 居中 */
+    background-size: 16px;
+    
+    padding-right: 30px; /* 確保文字不會蓋到箭頭 */
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    background-color: white;
+}
+
 body {
+    max-width: 600px;
     font-family: -apple-system, system-ui, sans-serif;
     background: var(--bg);
-    display: flex;
+    display: block;
     justify-content: center;
     padding: 20px;
     color: var(--text);
 }
 
+#homePage, #detailPage {
+    width: 100%;
+    transition: opacity 0.3s ease; /* 加個淡入淡出比較美 */
+}
+
+#homePage h1, p{
+    text-align: center;
+}
+
 .container {
+    max-width: 600px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+/* 首頁網格佈局 */
+.event-grid {
+    gap: 15px;
+    margin: 20px 0;
+}
+
+/* 行程卡片 */
+.event-card {
+    position: relative;
+    padding: 0; /* 改為 0，讓內容物撐開 */
+    overflow: hidden;
+    border: 1px solid #333;
+    border-radius: 5px;
+    margin-bottom: 15px;
+}
+
+.event-card-content {
+    padding: 30px 20px; /* 增加內容的點擊面積 */
+}
+
+.event-card-content h3{
+    margin: 0;
+}
+
+.delete-event-btn {
+    position: absolute;
+    top: 50%;
+    right: 8px;
+    z-index: 10; /* 確保在最上層 */
+    background: #f0f0f0;
+    border-radius: 50%;
+    padding: 5px;
+    font-size: 20px;
+    line-height: 1;
+    width: 30px;
+    height: 30px;
+    margin-top: -15px;
+}
+
+.delete-event-btn:hover {
+    color: #ff4d4d;
+}
+
+/* 底部新增按鈕 */
+.add-event-main-btn {
+    width: 100%;
+    padding: 15px;
+    background: #4285f4;
+    color: white;
+    border: none;
+    border-radius: 12px;
+    font-size: 1rem;
+    font-weight: bold;
+    cursor: pointer;
+    margin-top: 10px;
+}
+
+.back-btn {
+    width: auto;
+    font-size: 14px;
+    margin: 0;
+}
+
+.container {
+    display: block;
     background: white;
     width: 100%;
     max-width: 450px;
@@ -104,15 +205,13 @@ input[type="date"] {
 
 /* 選中狀態 (Active) */
 .member-chip.active {
-    background-color: var(--primary); /* 使用你的主色調，如藍色 */
-    color: white;
-    border-color: var(--primary);
-    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    background-color: #007bff !important; /* 強制變藍色 */
+    color: white !important;
+    border-color: #0056b3;
 }
 
 .member-input-group {
     display: flex;
-    height: 36px;
     width: 100%;
     margin: 15px 0;
 }
@@ -160,7 +259,6 @@ input[type="date"] {
 }
 
 button {
-    width: 100%;
     padding: 14px;
     background: var(--primary);
     color: white;
@@ -276,8 +374,8 @@ button {
 }
 
 #eventSelect {
+    min-height: 45px;
     flex: 1;
-    height: 36px;
     border-radius: 8px;
     border: 1px solid #ddd;
     padding: 0 10px;

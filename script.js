@@ -45,6 +45,89 @@ async function fetchEvents() {
     } else {
         select.innerHTML = '<option value="">請先建立行程</option>';
     }
+
+    renderEventGrid(data);
+}
+
+function showPage(page) {
+    const home = document.getElementById('homePage');
+    const detail = document.getElementById('detailPage');
+
+    if (page === 'home') {
+        home.style.display = 'block';   // 顯示首頁
+        detail.style.display = 'none';  // 隱藏詳情
+        fetchEvents(); // 回首頁時刷新列表
+    } else {
+        home.style.display = 'none';    // 隱藏首頁
+        detail.style.display = 'block'; // 顯示詳情
+    }
+}
+
+// 渲染首頁卡片
+async function renderEventGrid(events) {
+    const grid = document.getElementById('eventGrid');
+    grid.innerHTML = '';
+
+    events.forEach(event => { // 注意：這裡我們用 event 作為參數名
+        const card = document.createElement('div');
+        card.className = 'event-card';
+        
+        card.innerHTML = `
+            <button class="delete-event-btn" title="刪除行程">×</button>
+            <div class="event-card-content">
+                <h3>${event.name}</h3>
+            </div>
+        `;
+
+        // 1. 進入行程
+        card.querySelector('.event-card-content').onclick = () => {
+            enterEvent(event.id); // 這裡要用 event.id
+        };
+
+        // 2. 刪除行程
+        card.querySelector('.delete-event-btn').onclick = (e) => {
+            e.stopPropagation(); // 💡 阻止事件傳遞在這裡做就好
+            deleteEvent(event.id); // 💡 這裡只傳入 ID
+        };
+
+        grid.appendChild(card);
+    });
+}
+
+// 封裝進入行程的動作
+function enterEvent(id) {
+    currentEventId = id;
+    
+    // 同步下拉選單
+    const select = document.getElementById('eventSelect');
+    if (select) select.value = id;
+
+    // 抓取該行程資料
+    fetchExpenses(); 
+
+    // 💡 關鍵：切換頁面
+    showPage('detail');
+    
+    // 讓頁面滾動回頂部，避免停留在首頁的捲動位置
+    window.scrollTo(0, 0);
+}
+
+// 刪除行程
+async function deleteEvent(id) { 
+    // ❌ 刪除這一行：e.stopPropagation(); 
+    
+    if (!confirm("確定要刪除此行程嗎？相關帳目也會一起消失喔！")) return;
+    
+    console.log("正在刪除行程 ID:", id);
+
+    // 執行刪除邏輯...
+    const { error } = await _supabase.from('events').delete().eq('id', id);
+
+    if (!error) {
+        fetchEvents(); // 刷新首頁列表
+    } else {
+        alert("刪除失敗：" + error.message);
+    }
 }
 
 // 當下拉選單切換時
@@ -92,52 +175,39 @@ function updatePayerSelect() {
 }
 
 async function fetchExpenses() {
-    // 💡 1. 抓取行程 ID
     const select = document.getElementById('eventSelect');
-    const eventId = select.value;
+    if (!select || !select.value) return;
 
-    if (!eventId) return; // 沒選行程就不抓
+    currentEventId = select.value;
 
-    // 💡 2. 向 Supabase 抓取該行程的帳目
     const { data, error } = await _supabase
         .from('expenses')
         .select('*')
-        .eq('event_id', eventId)
+        .eq('event_id', currentEventId)
         .order('created_at', { ascending: false });
 
     if (error) {
         console.error("抓取失敗:", error);
     } else {
-        // 💡 3. 更新全域變數 expenses
         expenses = data;
-        
-        // --- 核心改動：重新計算並渲染成員 Chips ---
-        
-        // A. 先放預設成員 (例如：我, Allen)
+
         const allNames = new Set([]); 
         
-        // B. 再把「雲端帳目裡出現過的人」加進去 (如果有資料)
+        // 把帳目中出現過的其他人也加進去
         expenses.forEach(ex => {
             if (ex.payer) allNames.add(ex.payer);
             if (ex.participants) {
                 ex.participants.forEach(p => allNames.add(p));
             }
         });
-        
-        // C. 更新全域變數 members
+
+        // 更新全域變數 members
         members = Array.from(allNames);
-        
-        // D. 📢 關鍵：呼叫負責畫 Chips 且加上互動的 function
-        // 確保這個 function 內部有寫：chip.className = 'member-chip active';
-        if (typeof renderMemberSelectors === "function") {
-            renderMemberSelectors(); 
-        } else {
-            console.error("找不到 renderMemberSelectors 函式！");
-        }
-        
-        // --- 核心改動結束 ---
-        
-        render(); // 最後畫出帳目清單
+
+        // 💡 依序執行渲染
+        render();                 // 畫出下方的帳目清單與結算
+        renderMemberSelectors();  // 畫出中間的成員 Chips (帶有 active)
+        updatePayerSelect();      // 更新上方的付款人下拉選單
     }
 }
 
@@ -180,7 +250,7 @@ async function addExpense() {
         document.getElementById('itemDesc').value = '';
         document.getElementById('itemAmount').value = '';
         // 重新讀取資料
-        fetchData(); 
+        await fetchExpenses(); 
     }
 
     btn.disabled = false;
@@ -235,7 +305,7 @@ function render() {
         list.innerHTML += `<div class="list-item">
                 <div class="item-info">
                     <div class="item-desc">${item.description}</div>
-                    <div class="item-sub">${item.date} · <b>${item.payer}</b> 付 · 分攤: ${item.participants.join(', ')}</div>
+                    <div class="item-sub">${item.date} · 買單：<b>${item.payer}</b>  <br/> 分攤: ${item.participants.join(', ')}</div>
                 </div>
                 <div class="item-price">$${Math.round(item.amount)}<span class="delete-btn" onclick="deleteItem(${item.id}, '${item.description}')">×</span></div>
             </div>`;
