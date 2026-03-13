@@ -13,20 +13,29 @@
 
     <div class="container">
         <h2>WhoOwes ☁️</h2>
+        <div class="event-header">
+            <label for="eventSelect">當前行程：</label>
+            <select id="eventSelect" onchange="changeEvent(this.value)">
+                <option value="">讀取中...</option>
+            </select>
+        </div>
         <div class="input-group">
-            <div class="input-row"><label>日期</label><input type="date" id="itemDate" onclick="this.showPicker()"></div>
+            <div class="input-row"><label>消費日期</label><input type="date" id="itemDate" onclick="this.showPicker()">
+            </div>
             <div class="input-row"><label>付款人</label><select id="itemPayerSelect"></select></div>
             <div class="input-row"><label>項目 / 金額</label>
                 <div style="display:flex; gap:8px;"><input type="text" id="itemDesc" placeholder="項目"
                         style="flex:2;"><input type="number" id="itemAmount" placeholder="$" style="flex:1;"></div>
             </div>
             <div class="input-row">
-                <label>分攤成員</label>
+                <label>分攤成員（默認全選）</label>
                 <div id="memberSelector" class="member-checkbox-group"></div>
-                <input type="text" id="newMember" placeholder="+ 新增成員名字"
-                    style="margin-top:10px; font-size:12px; border-style:dashed;" onkeypress="handleMemberKey(event)">
+                <div class="member-input-group">
+                    <input type="text" id="newMemberName" placeholder="輸入新成員名字...">
+                    <button onclick="addNewMember()" class="add-btn">新增</button>
+                </div>
             </div>
-            <button id="submitBtn" onclick="addExpense()">同步記一筆</button>
+            <button id="submitBtn" onclick="addExpense()">新增一筆消費</button>
         </div>
 
         <div class="summary-card">
@@ -34,6 +43,9 @@
         </div>
         <div id="expenseList"></div>
         <div class="clear-all" onclick="clearData()">清空所有雲端記錄</div>
+        <footer class="copyright">
+            &copy; 2026 SG. All Rights Reserved.
+        </footer>
     </div>
 
     <script src="script.js"></script>

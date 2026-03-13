@@ -89,19 +89,74 @@ input[type="date"] {
     margin-top: 5px;
 }
 
+/* 預設的 Chip 樣式 (未選中) */
 .member-chip {
-    background: #fff;
-    border: 1px solid #ddd;
-    padding: 6px 12px;
+    padding: 6px 15px;
+    background-color: #f0f0f0; /* 沒選中時是灰色 */
+    color: #888;
     border-radius: 20px;
     cursor: pointer;
-    font-size: 13px;
+    font-size: 14px;
+    transition: all 0.2s ease;
+    border: 1px solid #ddd;
+    user-select: none; /* 防止快速點擊選到文字 */
 }
 
+/* 選中狀態 (Active) */
 .member-chip.active {
-    background: var(--primary);
+    background-color: var(--primary); /* 使用你的主色調，如藍色 */
     color: white;
     border-color: var(--primary);
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+.member-input-group {
+    display: flex;
+    height: 36px;
+    width: 100%;
+    margin: 15px 0;
+}
+
+.member-input-group input {
+    flex: 1;
+    height: 100%;
+    width: auto;
+    border: 1px solid #ddd;
+    border-right: none;
+    border-radius: 10px 0 0 10px;
+    background-color: white !important;
+    box-sizing: border-box;
+    font-size: 16px;
+    margin-bottom: 0; /* 移除可能的間距 */
+}
+
+.member-input-group button {
+    margin: 0;
+    width: 20%;
+}
+
+.add-btn {
+    padding: 0 20px;
+    background-color: var(--primary);
+    color: white;
+    border: 1px solid var(--primary);
+    border-radius: 0 10px 10px 0;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: bold;
+    white-space: nowrap;
+    display: flex;
+    align-items: center; /* 文字置中 */
+    justify-content: center;
+    box-sizing: border-box;
+}
+
+.add-btn:hover {
+    background-color: #1557b0; /* 稍微深一點的藍色 */
+}
+
+.add-btn:active {
+    transform: scale(0.95); /* 按下去的小縮放效果 */
 }
 
 button {
@@ -160,6 +215,37 @@ button {
     margin-left: 10px;
 }
 
+/* 當沒有資料時，直接隱藏結算卡片 */
+.has-no-data .summary-card {
+    display: none;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    background: white;
+    border-radius: 15px;
+    border: 2px dashed #eee; /* 使用虛線框，增加「等待填入」的視覺感 */
+    margin-top: 20px;
+}
+
+.empty-icon {
+    font-size: 40px;
+    margin-bottom: 10px;
+}
+
+.empty-state p {
+    color: #5f6368;
+    font-size: 16px;
+    margin: 5px 0;
+    font-weight: bold;
+}
+
+.empty-state span {
+    color: #9aa0a6;
+    font-size: 14px;
+}
+
 .clear-all {
     text-align: center;
     margin-top: 30px;
@@ -167,4 +253,41 @@ button {
     color: #bdc1c6;
     cursor: pointer;
     text-decoration: underline;
+}
+
+.copyright {
+    text-align: center;
+    font-size: 12px;
+    color: #9aa0a6; /* 淡淡的灰色 */
+    margin-top: 40px;
+    padding-bottom: 20px;
+    letter-spacing: 0.5px;
+}
+
+.event-header {
+    background: #f8f9fa;
+    padding: 12px 15px;
+    border-radius: 12px;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    border: 1px solid #eee;
+}
+
+#eventSelect {
+    flex: 1;
+    height: 36px;
+    border-radius: 8px;
+    border: 1px solid #ddd;
+    padding: 0 10px;
+    font-size: 14px;
+    background-color: white;
+}
+
+.event-header label {
+    font-size: 14px;
+    font-weight: bold;
+    color: #555;
+    white-space: nowrap;
 }
