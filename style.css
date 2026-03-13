@@ -52,14 +52,34 @@ label {
     display: block;
 }
 
-input,
-select {
+/* 1. 修正輸入框超出問題：確保 padding 不會撐開寬度 */
+input[type="date"], 
+input[type="text"], 
+input[type="number"], 
+select { 
+    width: 100%;            /* 寬度撐滿父容器 */
+    box-sizing: border-box; /* 極重要！讓 padding 和 border 不會增加額外寬度 */
+    padding: 12px; 
+    border: 1px solid #ddd; 
+    border-radius: 10px; 
+    font-size: 16px;        /* 防止 iOS 點擊時自動縮放畫面 */
+    
+    /* 2. 強制底色為白色並移除 iOS 預設陰影 */
+    background-color: #ffffff !important; 
+    -webkit-appearance: none;  /* 移除 iOS 內建樣式 */
+    appearance: none;
+}
+
+/* 針對 Date 類型的額外修正，確保在 iOS 上顯示正常 */
+input[type="date"] {
+    min-height: 45px; /* 給予足夠高度 */
+    display: block;
+}
+
+/* 讓 input-group 內部有足夠空間，避免緊貼邊緣 */
+.input-row { 
+    margin-bottom: 12px; 
     width: 100%;
-    padding: 12px;
-    border: 1px solid #ddd;
-    border-radius: 10px;
-    box-sizing: border-box;
-    font-size: 16px;
 }
 
 .member-checkbox-group {
