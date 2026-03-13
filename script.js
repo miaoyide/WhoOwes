@@ -2,11 +2,37 @@
 const SUPABASE_URL = 'https://naagujwufjeqsgwmyrcv.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5hYWd1and1ZmplcXNnd215cmN2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMzMjc0MTcsImV4cCI6MjA4ODkwMzQxN30.6MFjNVe2zz1lwGVYx9BSFco7hEZTjvBueGQABrq1apM';
 const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const PRESET_MEMBERS = ["ㄉ","ㄊ","ㄌ","ㄐㄅ","ㄅㄐ","ㄌㄇ","ㄩ","ㄏ"]; 
 
 let currentEventId = '';
 let expenses = [];
 let members = [];
 let selectedParticipants = [...members];
+let isDeleting = false;
+let modalMembers = [];
+let titleClickCount = 0;
+let titleClickTimer = null;
+let editMode = false;
+
+function handleTitleClick() {
+    titleClickCount++;
+    clearTimeout(titleClickTimer);
+
+    titleClickTimer = setTimeout(() => {
+        titleClickCount = 0;
+    }, 2000); // 2 秒內要點完 5 下
+
+    if (titleClickCount >= 5) {
+        titleClickCount = 0;
+        clearTimeout(titleClickTimer);
+        toggleEditMode();
+    }
+}
+
+function toggleEditMode() {
+    editMode = !editMode;
+    document.body.classList.toggle('edit-mode', editMode);
+}
 
 window.onload = async function () {
     document.getElementById('itemDate').value = new Date().toISOString().split('T')[0];
@@ -15,9 +41,13 @@ window.onload = async function () {
 
     // 開啟即時監聽：一旦雲端資料變動，立刻更新畫面
     _supabase.channel('custom-all-channel')
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'expenses' }, payload => {
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'expenses' }, () => {
             fetchExpenses();
-        }).subscribe();
+        })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'events' }, () => {
+            fetchEvents();  // ✅ 加這個
+        })
+        .subscribe();
 
     render();
 };
@@ -68,30 +98,35 @@ async function renderEventGrid(events) {
     const grid = document.getElementById('eventGrid');
     grid.innerHTML = '';
 
-    events.forEach(event => { // 注意：這裡我們用 event 作為參數名
+    for (const trip of events) {
+        // 撈該行程的消費資料
+        const { data } = await _supabase
+            .from('expenses')
+            .select('amount')
+            .eq('event_id', trip.id);
+
+        const count = data ? data.length : 0;
+        const total = data ? data.reduce((sum, e) => sum + parseFloat(e.amount), 0) : 0;
+
         const card = document.createElement('div');
         card.className = 'event-card';
-        
+
         card.innerHTML = `
             <button class="delete-event-btn" title="刪除行程">×</button>
             <div class="event-card-content">
-                <h3>${event.name}</h3>
+                <h3>${trip.name}</h3>
+                <p class="event-card-meta">${count} 筆消費・總計 $${Math.round(total)}</p>
             </div>
         `;
 
-        // 1. 進入行程
-        card.querySelector('.event-card-content').onclick = () => {
-            enterEvent(event.id); // 這裡要用 event.id
-        };
-
-        // 2. 刪除行程
+        card.querySelector('.event-card-content').onclick = () => enterEvent(trip.id);
         card.querySelector('.delete-event-btn').onclick = (e) => {
-            e.stopPropagation(); // 💡 阻止事件傳遞在這裡做就好
-            deleteEvent(event.id); // 💡 這裡只傳入 ID
+            e.stopPropagation();
+            deleteEvent(trip.id);
         };
 
         grid.appendChild(card);
-    });
+    }
 }
 
 // 封裝進入行程的動作
@@ -112,21 +147,94 @@ function enterEvent(id) {
     window.scrollTo(0, 0);
 }
 
-// 刪除行程
-async function deleteEvent(id) { 
-    // ❌ 刪除這一行：e.stopPropagation(); 
-    
-    if (!confirm("確定要刪除此行程嗎？相關帳目也會一起消失喔！")) return;
-    
-    console.log("正在刪除行程 ID:", id);
+// 建立行程
+function promptNewEvent() {
+    modalMembers = [];
 
-    // 執行刪除邏輯...
+    const container = document.getElementById('modalMemberChips');
+    container.innerHTML = PRESET_MEMBERS.map(name => `
+        <div class="member-chip active" onclick="this.classList.toggle('active')">${name}</div>
+    `).join('');
+
+    document.getElementById('newEventName').value = '';
+    document.getElementById('modalNewMember').value = '';
+    document.getElementById('newEventModal').style.display = 'flex';
+
+    setTimeout(() => document.getElementById('newEventName').focus(), 100);
+}
+
+function addModalMember() {
+    const input = document.getElementById('modalNewMember');
+    const name = input.value.trim();
+    if (!name) return;
+
+    const savedMembers = JSON.parse(localStorage.getItem('whoowes_preset_members') || '[]');
+    if (savedMembers.includes(name) || modalMembers.includes(name)) {
+        alert('這個名字已經存在囉！');
+        return;
+    }
+
+    modalMembers.push(name);
+    input.value = '';
+
+    // 新增一個 chip 到畫面上
+    const container = document.getElementById('modalMemberChips');
+    const chip = document.createElement('div');
+    chip.className = 'member-chip active';
+    chip.innerText = name;
+    chip.onclick = function() { this.classList.toggle('active'); };
+    container.appendChild(chip);
+}
+
+function closeNewEventModal() {
+    document.getElementById('newEventModal').style.display = 'none';
+}
+
+async function confirmNewEvent() {
+    const name = document.getElementById('newEventName').value.trim();
+    if (!name) return alert('請輸入行程名稱');
+
+    // 收集勾選的成員
+    const selectedMembers = Array.from(document.querySelectorAll('#modalMemberChips .member-chip.active'))
+        .map(chip => chip.innerText);
+
+    closeNewEventModal();
+
+    const { data, error } = await _supabase
+        .from('events')
+        .insert([{ name, members: selectedMembers }])
+        .select()
+        .single();
+
+    if (error) {
+        alert('建立失敗：' + error.message);
+    } else {
+        await fetchEvents();
+        enterEvent(data.id);
+    }
+}
+
+// 刪除行程
+async function deleteEvent(id) {
+    if (!confirm("確定要刪除此行程嗎？相關帳目也會一起消失喔！")) return;
+
+    // 先刪除該行程下所有帳目
+    await _supabase.from('expenses').delete().eq('event_id', id);
+
+    // 再刪除行程本身
     const { error } = await _supabase.from('events').delete().eq('id', id);
 
-    if (!error) {
-        fetchEvents(); // 刷新首頁列表
+    if (error) {
+        alert('刪除失敗：' + error.message);
     } else {
-        alert("刪除失敗：" + error.message);
+        // 如果刪除的是當前行程，重置狀態並回首頁
+        if (currentEventId === id) {
+            currentEventId = '';
+            expenses = [];
+            members = [];
+            selectedParticipants = [];
+        }
+        fetchEvents();
     }
 }
 
@@ -180,35 +288,33 @@ async function fetchExpenses() {
 
     currentEventId = select.value;
 
-    const { data, error } = await _supabase
-        .from('expenses')
-        .select('*')
-        .eq('event_id', currentEventId)
-        .order('created_at', { ascending: false });
+    // 同時抓該行程的 members 欄位和消費記錄
+    const [{ data: eventData }, { data, error }] = await Promise.all([
+        _supabase.from('events').select('members').eq('id', currentEventId).single(),
+        _supabase.from('expenses').select('*').eq('event_id', currentEventId).order('date', { ascending: false })
+    ]);
 
     if (error) {
         console.error("抓取失敗:", error);
-    } else {
-        expenses = data;
-
-        const allNames = new Set([]); 
-        
-        // 把帳目中出現過的其他人也加進去
-        expenses.forEach(ex => {
-            if (ex.payer) allNames.add(ex.payer);
-            if (ex.participants) {
-                ex.participants.forEach(p => allNames.add(p));
-            }
-        });
-
-        // 更新全域變數 members
-        members = Array.from(allNames);
-
-        // 💡 依序執行渲染
-        render();                 // 畫出下方的帳目清單與結算
-        renderMemberSelectors();  // 畫出中間的成員 Chips (帶有 active)
-        updatePayerSelect();      // 更新上方的付款人下拉選單
+        return;
     }
+
+    expenses = data;
+
+    // 合併 events.members 和 expenses 裡出現過的人
+    const allNames = new Set(eventData?.members || []);
+
+    expenses.forEach(ex => {
+        if (ex.payer) allNames.add(ex.payer);
+        if (ex.participants) ex.participants.forEach(p => allNames.add(p));
+    });
+
+    members = Array.from(allNames);
+    selectedParticipants = [...members];
+
+    render();
+    renderMemberSelectors();
+    updatePayerSelect();
 }
 
 async function addExpense() {
@@ -258,12 +364,22 @@ async function addExpense() {
 }
 
 async function deleteItem(id, desc) {
+    if (isDeleting) return;  // 防止重複點擊
     if (!confirm(`確定刪除「${desc}」？`)) return;
-    await _supabase.from('expenses').delete().eq('id', id);
+
+    isDeleting = true;
+
+    const { error } = await _supabase.from('expenses').delete().eq('id', id);
+    
+    if (error) {
+        alert('刪除失敗：' + error.message);
+    } else {
+        await fetchExpenses();
+    }
+
+    isDeleting = false;
 }
 
-// (其餘成員管理、計算與 render 邏輯與之前相同，但計算時使用雲端的 expenses 陣列)
-// 為節省長度，此處 render 邏輯需對應 table 欄位名 (description, participants)
 function render() {
     // 更新成員選擇與下拉清單
     const selector = document.getElementById('memberSelector');
@@ -275,11 +391,11 @@ function render() {
 
     const list = document.getElementById('expenseList');
     const settlementDiv = document.getElementById('settlementReport');
-    list.innerHTML = ''; settlementDiv.innerHTML = '';
+    list.innerHTML = '';
+    settlementDiv.innerHTML = '';
 
-    // 檢查是否有資料
     if (expenses.length === 0) {
-        document.body.classList.toggle('has-no-data', expenses.length === 0);
+        document.body.classList.add('has-no-data');
         list.innerHTML = `
             <div class="empty-state">
                 <div class="empty-icon">📝</div>
@@ -287,11 +403,12 @@ function render() {
                 <span>快在上方輸入第一筆支出吧</span>
             </div>
         `;
-        // 如果沒有資料，結算報告也可以順便清空
-        document.getElementById('settlementReport').innerHTML = '';
-        return; // 直接結束 render，後面不用跑了
+        return;
     }
 
+    document.body.classList.remove('has-no-data');
+
+    // 計算 balances
     let balances = {};
     members.forEach(m => balances[m] = 0);
 
@@ -301,21 +418,62 @@ function render() {
         item.participants.forEach(p => {
             if (balances[p] !== undefined) balances[p] -= perPerson;
         });
-
-        list.innerHTML += `<div class="list-item">
-                <div class="item-info">
-                    <div class="item-desc">${item.description}</div>
-                    <div class="item-sub">${item.date} · 買單：<b>${item.payer}</b>  <br/> 分攤: ${item.participants.join(', ')}</div>
-                </div>
-                <div class="item-price">$${Math.round(item.amount)}<span class="delete-btn" onclick="deleteItem(${item.id}, '${item.description}')">×</span></div>
-            </div>`;
     });
+
+    // 結算建議
+    const creditors = [];
+    const debtors = [];
 
     for (let name in balances) {
         const bal = Math.round(balances[name]);
-        if (Math.abs(bal) < 1) continue;
-        settlementDiv.innerHTML += `<div class="report-item"><span>${name}</span><span class="${bal > 0 ? 'status-plus' : 'status-minus'}">${bal > 0 ? '應收' : '應付'} $${Math.abs(bal)}</span></div>`;
+        if (bal > 1) creditors.push({ name, amount: bal });
+        if (bal < -1) debtors.push({ name, amount: -bal });
     }
+
+    const transactions = [];
+    while (creditors.length && debtors.length) {
+        const creditor = creditors[0];
+        const debtor = debtors[0];
+        const amount = Math.min(creditor.amount, debtor.amount);
+
+        transactions.push({ from: debtor.name, to: creditor.name, amount });
+
+        creditor.amount -= amount;
+        debtor.amount -= amount;
+
+        if (creditor.amount === 0) creditors.shift();
+        if (debtor.amount === 0) debtors.shift();
+    }
+
+    settlementDiv.innerHTML = transactions.length === 0
+        ? '<div class="report-item">✅ 大家都結清了！</div>'
+        : transactions.map(t => `
+            <div class="report-item">
+                <span><b>${t.from}</b> → <b>${t.to}</b></span>
+                <span class="status-minus">付 $${t.amount}</span>
+            </div>
+        `).join('');
+
+    // 按日期分組渲染帳目列表
+    const grouped = {};
+    expenses.forEach(item => {
+        const date = item.date || '未知日期';
+        if (!grouped[date]) grouped[date] = [];
+        grouped[date].push(item);
+    });
+
+    Object.keys(grouped).sort((a, b) => b.localeCompare(a)).forEach(date => {
+        list.innerHTML += `<div class="date-group-header">${date}</div>`;
+        grouped[date].forEach(item => {
+            list.innerHTML += `<div class="list-item">
+                <div class="item-info">
+                    <div class="item-desc">${item.description}</div>
+                    <div class="item-sub">買單：<b>${item.payer}</b><br/>分攤: ${item.participants.join(', ')}</div>
+                </div>
+                <div class="item-price">$${Math.round(item.amount)}<span class="delete-btn" onclick="deleteItem(${item.id}, '${item.description}')">×</span></div>
+            </div>`;
+        });
+    });
 }
 
 function toggleParticipant(name) {
@@ -335,38 +493,41 @@ function handleMemberKey(e) {
     }
 }
 
-function addNewMember() {
+async function addNewMember() {
     const input = document.getElementById('newMemberName');
     const name = input.value.trim();
-    
-    if (name) {
-        if (!members.includes(name)) {
-            members.push(name);
-            input.value = ''; // 清空輸入框
-            render();        // 重新渲染畫面
-            // 如果你有存 local 或者雲端，記得在這裡呼叫存檔函式
-        } else {
-            alert('這個名字已經存在囉！');
-        }
+    if (!name) return;
+
+    if (members.includes(name)) {
+        alert('這個名字已經存在囉！');
+        return;
     }
+
+    members.push(name);
+    selectedParticipants.push(name);
+    input.value = '';
+
+    // 同步寫進 Supabase 的 events 表
+    await _supabase
+        .from('events')
+        .update({ members: members })
+        .eq('id', currentEventId);
+
+    render();
 }
 
 async function clearData() {
-    if (confirm("⚠️ 警告：這會刪除「雲端資料庫」中所有的帳目，且無法復原！確定要清空嗎？")) {
-        // 刪除 expenses 表格中所有 id 大於 0 的資料 (即所有資料)
-        const { error } = await _supabase
-            .from('expenses')
-            .delete()
-            .gt('id', 0);
+    if (confirm("⚠️ 警告：這會刪除所有行程與帳目，且無法復原！確定要清空嗎？")) {
+        await _supabase.from('expenses').delete().gt('id', 0);
+        await _supabase.from('events').delete().gt('id', 0);
 
-        if (error) {
-            alert("清空失敗：" + error.message);
-        } else {
-            // 清空本地快取成員，讓它恢復你設定的預設值
-            localStorage.removeItem('whoowes_members');
-            alert("雲端資料已清空！頁面將自動重新整理。");
-            location.reload();
-        }
+        currentEventId = '';
+        expenses = [];
+        members = [];
+        selectedParticipants = [];
+
+        alert("雲端資料已清空！頁面將自動重新整理。");
+        location.reload();
     }
 }
 

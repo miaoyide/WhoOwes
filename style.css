@@ -78,6 +78,13 @@ body {
     margin: 0;
 }
 
+.event-card-meta {
+    margin: 6px 0 0 0;
+    font-size: 13px;
+    color: var(--secondary);
+    text-align: left;
+}
+
 .delete-event-btn {
     position: absolute;
     top: 50%;
@@ -112,9 +119,16 @@ body {
 }
 
 .back-btn {
-    width: auto;
-    font-size: 14px;
     margin: 0;
+    padding: 8px 12px;
+    font-size: 13px;
+    font-weight: bold;
+    background: white;
+    color: var(--primary);
+    border: 1px solid var(--primary);
+    border-radius: 8px;
+    white-space: nowrap;
+    cursor: pointer;
 }
 
 .container {
@@ -294,6 +308,16 @@ button {
     font-weight: bold;
 }
 
+.date-group-header {
+    font-size: 12px;
+    font-weight: bold;
+    color: var(--secondary);
+    background: #f1f3f4;
+    padding: 6px 10px;
+    border-radius: 8px;
+    margin: 12px 0 4px 0;
+}
+
 .list-item {
     display: flex;
     justify-content: space-between;
@@ -388,4 +412,41 @@ button {
     font-weight: bold;
     color: #555;
     white-space: nowrap;
+}
+
+.modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+}
+
+.modal-card {
+    background: white;
+    border-radius: 20px;
+    padding: 24px;
+    width: 90%;
+    max-width: 420px;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.15);
+}
+
+.modal-card h3 {
+    margin: 0 0 20px 0;
+    font-size: 18px;
+    text-align: center;
+}
+
+.delete-event-btn,
+.delete-btn,
+.clear-all {
+    display: none;
+}
+
+.edit-mode .delete-event-btn,
+.edit-mode .delete-btn,
+.edit-mode .clear-all {
+    display: inline;
 }

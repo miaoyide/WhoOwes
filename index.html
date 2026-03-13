@@ -13,8 +13,8 @@
 <body>
     <div id="homePage" class="container">
         <header>
-            <h1>WhoOwesYou</h1>
-            <p>選擇一個行程開始記帳</p>
+            <h1 onclick="handleTitleClick()">WhoOwesYou</h1>
+            <p>點擊行程開始秋後算帳</p>
         </header>
 
         <div id="eventGrid" class="event-grid">
@@ -28,9 +28,8 @@
 
     <div id="detailPage" style="display: none;">
         <div class="container">
-                <!-- <button onclick="showPage('home')" class="back-btn">首頁</button> -->
             <div class="event-header">
-                <label for="eventSelect">當前行程：</label>
+                <button onclick="showPage('home')" class="back-btn">← 首頁</button>
                 <select id="eventSelect" onchange="changeEvent(this.value)">
                     <option value="">讀取中...</option>
                 </select>
@@ -58,16 +57,39 @@
                 <div id="settlementReport"></div>
             </div>
             <div id="expenseList"></div>
-            <div class="clear-all" onclick="clearData()">清空所有雲端記錄</div>
+            <div class="clear-all" onclick="clearData()">刪除行程</div>
         </div>
     </div>
 
-    <footer class="copyright clear-all">
+    <footer class="copyright">
         &copy; 2026 SG. All Rights Reserved.
     </footer>
     
 
     <script src="script.js"></script>
+    <div id="newEventModal" class="modal-overlay" style="display:none;">
+        <div class="modal-card">
+            <h3>建立新行程</h3>
+            <div class="input-row">
+                <label>行程名稱</label>
+                <input type="text" id="newEventName" placeholder="例：西班牙20天21夜">
+            </div>
+            <div class="input-row">
+                <label>選擇成員</label>
+                <div id="modalMemberChips" class="member-checkbox-group"></div>
+            </div>
+            <div class="input-row">
+                <div class="member-input-group">
+                    <input type="text" id="modalNewMember" placeholder="新增其他成員...">
+                    <button onclick="addModalMember()" class="add-btn">新增</button>
+                </div>
+            </div>
+            <div style="display:flex; gap:8px; margin-top:10px;">
+                <button onclick="closeNewEventModal()" style="background:#f1f3f4; color:#333; flex:1;">取消</button>
+                <button onclick="confirmNewEvent()" style="flex:2;">建立行程</button>
+            </div>
+        </div>
+    </div>
 </body>
 
 </html>
