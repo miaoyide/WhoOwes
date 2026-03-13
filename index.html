@@ -14,6 +14,7 @@
     <div id="loadingOverlay" class="loading-overlay">
         <div class="spinner"></div>
     </div>
+
     <div id="homePage" class="container">
         <header>
             <h1 onclick="handleTitleClick()">WhoOwesYou</h1>
@@ -29,7 +30,7 @@
         </button>
     </div>
 
-    <div id="detailPage" style="display: none;">
+    <div id="detailPage">
         <div class="container">
             <div class="event-header">
                 <button onclick="showPage('home')" class="back-btn">← 首頁</button>
@@ -38,12 +39,20 @@
                 </select>
             </div>
             <div class="input-group">
-                <div class="input-row"><label>消費日期</label><input type="date" id="itemDate" onclick="this.showPicker()">
+                <div class="input-row">
+                    <label>消費日期</label>
+                    <input type="date" id="itemDate" onclick="this.showPicker()">
                 </div>
-                <div class="input-row"><label>付款人</label><select id="itemPayerSelect"></select></div>
-                <div class="input-row"><label>項目 / 金額</label>
-                    <div style="display:flex; gap:8px;"><input type="text" id="itemDesc" placeholder="項目"
-                            style="flex:2;"><input type="number" id="itemAmount" placeholder="$" style="flex:1;"></div>
+                <div class="input-row">
+                    <label>付款人</label>
+                    <select id="itemPayerSelect"></select>
+                </div>
+                <div class="input-row">
+                    <label>項目 / 金額</label>
+                    <div class="amount-row">
+                        <input type="text" id="itemDesc" placeholder="項目" class="flex-2">
+                        <input type="number" id="itemAmount" placeholder="$" class="flex-1">
+                    </div>
                 </div>
                 <div class="input-row">
                     <label id="participantLabel">分攤成員（已選 0 人）</label>
@@ -60,7 +69,7 @@
                     <button class="tab-btn active" onclick="switchTab('detail', event)">收支明細</button>
                     <button class="tab-btn" onclick="switchTab('settlement', event)">結清建議</button>
                 </div>
-                <div id="settlementReport" style="display:none;"></div>
+                <div id="settlementReport"></div>
                 <div id="detailReport"></div>
             </div>
             <div id="expenseList"></div>
@@ -71,9 +80,7 @@
     <footer class="copyright">
         &copy; 2026 SG. All Rights Reserved.
     </footer>
-    
 
-    <script src="script.js"></script>
     <div id="newEventModal" class="modal-overlay" style="display:none;">
         <div class="modal-card">
             <h3>建立新行程</h3>
@@ -91,12 +98,14 @@
                     <button onclick="addModalMember()" class="add-btn">新增</button>
                 </div>
             </div>
-            <div style="display:flex; gap:8px; margin-top:10px;">
-                <button onclick="closeNewEventModal()" style="background:#f1f3f4; color:#333; flex:1;">取消</button>
-                <button onclick="confirmNewEvent()" style="flex:2;">建立行程</button>
+            <div class="modal-actions">
+                <button onclick="closeNewEventModal()" class="btn-cancel">取消</button>
+                <button onclick="confirmNewEvent()" class="btn-confirm">建立行程</button>
             </div>
         </div>
     </div>
+
+    <script src="script.js"></script>
 </body>
 
 </html>
