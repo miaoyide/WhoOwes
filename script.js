@@ -632,3 +632,34 @@ async function clearData() {
 document.getElementById('editNewMember').addEventListener('keypress', function (e) {
     if (e.key === 'Enter') addEditMember();
 });
+
+document.getElementById('modalNewMember').addEventListener('keypress', function (e) {
+    if (e.key === 'Enter') addModalMember();
+});
+
+// PWA 安裝
+let _installPrompt = null;
+window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    _installPrompt = e;
+    document.getElementById('installBtn').style.display = 'block';
+});
+
+async function installApp() {
+    if (!_installPrompt) return;
+    _installPrompt.prompt();
+    const { outcome } = await _installPrompt.userChoice;
+    if (outcome === 'accepted') {
+        document.getElementById('installBtn').style.display = 'none';
+        _installPrompt = null;
+    }
+}
+
+window.addEventListener('appinstalled', () => {
+    document.getElementById('installBtn').style.display = 'none';
+    _installPrompt = null;
+});
+
+if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('./sw.js');
+}

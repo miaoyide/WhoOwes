@@ -7,6 +7,7 @@
     <title>WhoOwes</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/modern-normalize/2.0.0/modern-normalize.min.css">
     <link rel="stylesheet" href="style.css">
+    <link rel="manifest" href="manifest.json">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 
@@ -27,6 +28,9 @@
 
         <button class="add-event-main-btn" onclick="promptNewEvent()">
             <span>+</span> 建立新行程
+        </button>
+        <button id="installBtn" class="install-btn" style="display:none;" onclick="installApp()">
+            添加至桌面
         </button>
     </div>
 

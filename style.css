@@ -108,6 +108,19 @@ body {
     color: #ff4d4d;
 }
 
+.install-btn {
+    width: 100%;
+    padding: 12px;
+    background: white;
+    color: var(--primary);
+    border: 1px solid var(--primary);
+    border-radius: 12px;
+    font-size: 0.95rem;
+    font-weight: bold;
+    cursor: pointer;
+    margin-top: 10px;
+}
+
 .add-event-main-btn {
     width: 100%;
     padding: 15px;

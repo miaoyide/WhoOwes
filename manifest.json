@@ -1,0 +1,10 @@
+{
+  "name": "WhoOwesYou",
+  "short_name": "WhoOwes",
+  "description": "旅遊帳目計算工具",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#f8f9fa",
+  "theme_color": "#1a73e8",
+  "icons": []
+}
