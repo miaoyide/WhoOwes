@@ -141,14 +141,24 @@ function enterEvent(id) {
     window.scrollTo(0, 0);
 }
 
-function promptNewEvent() {
-    modalMembers = [];
-    const container = document.getElementById('modalMemberChips');
-    container.innerHTML = PRESET_MEMBERS.map(name => `
-        <div class="member-chip active" onclick="this.classList.toggle('active')">${name}</div>
+function renderModalMemberChips() {
+    document.getElementById('modalMemberChips').innerHTML = modalMembers.map(name => `
+        <div class="member-chip-tag">
+            ${name}<span class="chip-remove" onclick="removeModalMember('${name}')">×</span>
+        </div>
     `).join('');
+}
+
+function removeModalMember(name) {
+    modalMembers = modalMembers.filter(m => m !== name);
+    renderModalMemberChips();
+}
+
+function promptNewEvent() {
+    modalMembers = [...PRESET_MEMBERS];
     document.getElementById('newEventName').value = '';
     document.getElementById('modalNewMember').value = '';
+    renderModalMemberChips();
     document.getElementById('newEventModal').style.display = 'flex';
     setTimeout(() => document.getElementById('newEventName').focus(), 100);
 }
@@ -157,22 +167,10 @@ function addModalMember() {
     const input = document.getElementById('modalNewMember');
     const name = input.value.trim();
     if (!name) return;
-
-    const savedMembers = JSON.parse(localStorage.getItem('whoowes_preset_members') || '[]');
-    if (savedMembers.includes(name) || modalMembers.includes(name)) {
-        alert('這個名字已經存在囉！');
-        return;
-    }
-
+    if (modalMembers.includes(name)) { alert('這個名字已經存在囉！'); return; }
     modalMembers.push(name);
     input.value = '';
-
-    const container = document.getElementById('modalMemberChips');
-    const chip = document.createElement('div');
-    chip.className = 'member-chip active';
-    chip.innerText = name;
-    chip.onclick = function() { this.classList.toggle('active'); };
-    container.appendChild(chip);
+    renderModalMemberChips();
 }
 
 function closeNewEventModal() {
@@ -183,14 +181,11 @@ async function confirmNewEvent() {
     const name = document.getElementById('newEventName').value.trim();
     if (!name) return alert('請輸入行程名稱');
 
-    const selectedMembers = Array.from(document.querySelectorAll('#modalMemberChips .member-chip.active'))
-        .map(chip => chip.innerText);
-
     closeNewEventModal();
 
     const { data, error } = await _supabase
         .from('events')
-        .insert([{ name, members: selectedMembers }])
+        .insert([{ name, members: modalMembers }])
         .select()
         .single();
 
