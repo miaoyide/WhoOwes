@@ -57,10 +57,6 @@
                 <div class="input-row">
                     <label id="participantLabel">分攤成員（已選 0 人）</label>
                     <div id="memberSelector" class="member-checkbox-group"></div>
-                    <div class="member-input-group">
-                        <input type="text" id="newMemberName" placeholder="輸入新成員名字...">
-                        <button onclick="addNewMember()" class="add-btn">新增</button>
-                    </div>
                 </div>
                 <button id="submitBtn" onclick="addExpense()">新增一筆消費</button>
             </div>
@@ -80,6 +76,30 @@
     <footer class="copyright">
         &copy; 2026 SG. All Rights Reserved.
     </footer>
+
+    <div id="editEventModal" class="modal-overlay" style="display:none;">
+        <div class="modal-card">
+            <h3>編輯行程</h3>
+            <div class="input-row">
+                <label>行程名稱</label>
+                <input type="text" id="editEventName" placeholder="行程名稱">
+            </div>
+            <div class="input-row">
+                <label>成員</label>
+                <div id="editMemberChips" class="member-checkbox-group"></div>
+            </div>
+            <div class="input-row">
+                <div class="member-input-group">
+                    <input type="text" id="editNewMember" placeholder="新增成員...">
+                    <button onclick="addEditMember()" class="add-btn">新增</button>
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button onclick="closeEditEventModal()" class="btn-cancel">取消</button>
+                <button onclick="confirmEditEvent()" class="btn-confirm">儲存</button>
+            </div>
+        </div>
+    </div>
 
     <div id="newEventModal" class="modal-overlay" style="display:none;">
         <div class="modal-card">

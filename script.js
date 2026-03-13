@@ -11,6 +11,8 @@ let selectedPayers = [];
 let payerEqualSplit = true;
 let isDeleting = false;
 let modalMembers = [];
+let editingEventId = '';
+let editModalCurrentMembers = [];
 let titleClickCount = 0;
 let titleClickTimer = null;
 let editMode = false;
@@ -109,6 +111,7 @@ async function renderEventGrid(events) {
         const card = document.createElement('div');
         card.className = 'event-card';
         card.innerHTML = `
+            <button class="edit-event-btn" title="編輯行程">✎</button>
             <button class="delete-event-btn" title="刪除行程">×</button>
             <div class="event-card-content">
                 <h3>${trip.name}</h3>
@@ -116,6 +119,10 @@ async function renderEventGrid(events) {
             </div>
         `;
         card.querySelector('.event-card-content').onclick = () => enterEvent(trip.id);
+        card.querySelector('.edit-event-btn').onclick = (e) => {
+            e.stopPropagation();
+            openEditEventModal(trip.id, trip.name, trip.members || []);
+        };
         card.querySelector('.delete-event-btn').onclick = (e) => {
             e.stopPropagation();
             deleteEvent(trip.id);
@@ -211,6 +218,62 @@ async function deleteEvent(id) {
             selectedParticipants = [];
         }
         fetchEvents();
+    }
+}
+
+function openEditEventModal(id, name, currentMembers) {
+    editingEventId = id;
+    editModalCurrentMembers = [...currentMembers];
+    document.getElementById('editEventName').value = name;
+    document.getElementById('editNewMember').value = '';
+    renderEditMemberChips();
+    document.getElementById('editEventModal').style.display = 'flex';
+    setTimeout(() => document.getElementById('editEventName').focus(), 100);
+}
+
+function renderEditMemberChips() {
+    document.getElementById('editMemberChips').innerHTML = editModalCurrentMembers.map(name => `
+        <div class="member-chip-tag">
+            ${name}<span class="chip-remove" onclick="removeEditMember('${name}')">×</span>
+        </div>
+    `).join('');
+}
+
+function removeEditMember(name) {
+    editModalCurrentMembers = editModalCurrentMembers.filter(m => m !== name);
+    renderEditMemberChips();
+}
+
+function addEditMember() {
+    const input = document.getElementById('editNewMember');
+    const name = input.value.trim();
+    if (!name) return;
+    if (editModalCurrentMembers.includes(name)) { alert('這個名字已經存在囉！'); return; }
+    editModalCurrentMembers.push(name);
+    input.value = '';
+    renderEditMemberChips();
+}
+
+function closeEditEventModal() {
+    document.getElementById('editEventModal').style.display = 'none';
+}
+
+async function confirmEditEvent() {
+    const name = document.getElementById('editEventName').value.trim();
+    if (!name) return alert('請輸入行程名稱');
+
+    closeEditEventModal();
+
+    const { error } = await _supabase
+        .from('events')
+        .update({ name, members: editModalCurrentMembers })
+        .eq('id', editingEventId);
+
+    if (error) {
+        alert('儲存失敗：' + error.message);
+    } else {
+        await fetchEvents();
+        if (currentEventId === editingEventId) await fetchExpenses();
     }
 }
 
@@ -556,28 +619,6 @@ function toggleParticipant(name) {
     updateParticipantLabel();
 }
 
-async function addNewMember() {
-    const input = document.getElementById('newMemberName');
-    const name = input.value.trim();
-    if (!name) return;
-
-    if (members.includes(name)) {
-        alert('這個名字已經存在囉！');
-        return;
-    }
-
-    members.push(name);
-    selectedParticipants.push(name);
-    input.value = '';
-
-    await _supabase
-        .from('events')
-        .update({ members })
-        .eq('id', currentEventId);
-
-    render();
-}
-
 async function clearData() {
     if (confirm("⚠️ 警告：這會刪除所有行程與帳目，且無法復原！確定要清空嗎？")) {
         await _supabase.from('expenses').delete().gt('id', 0);
@@ -593,6 +634,6 @@ async function clearData() {
     }
 }
 
-document.getElementById('newMemberName').addEventListener('keypress', function (e) {
-    if (e.key === 'Enter') addNewMember();
+document.getElementById('editNewMember').addEventListener('keypress', function (e) {
+    if (e.key === 'Enter') addEditMember();
 });

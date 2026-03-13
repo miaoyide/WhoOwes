@@ -20,11 +20,6 @@ body {
     color: var(--text);
 }
 
-#homePage h1,
-#homePage p {
-    text-align: center;
-}
-
 #homePage,
 #detailPage {
     width: 100%;
@@ -61,12 +56,13 @@ body {
 }
 
 .event-card-content {
-    padding: 30px 20px;
+    padding: 20px 90px 20px 20px;
     cursor: pointer;
 }
 
 .event-card-content h3 {
     margin: 0;
+    text-align: left;
 }
 
 .event-card-meta {
@@ -76,19 +72,36 @@ body {
     text-align: left;
 }
 
+.edit-event-btn,
 .delete-event-btn {
     position: absolute;
     top: 50%;
-    right: 8px;
     z-index: 10;
     background: #f0f0f0;
     border-radius: 50%;
     padding: 5px;
-    font-size: 20px;
     line-height: 1;
     width: 30px;
     height: 30px;
     margin-top: -15px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.edit-event-btn {
+    right: 8px;
+    font-size: 16px;
+    color: var(--secondary);
+}
+
+.edit-event-btn:hover {
+    color: var(--primary);
+}
+
+.delete-event-btn {
+    right: 46px;
+    font-size: 20px;
 }
 
 .delete-event-btn:hover {
@@ -421,18 +434,6 @@ button {
     font-size: 14px;
 }
 
-/* 刪除按鈕（Edit mode 才顯示） */
-.delete-event-btn,
-.delete-btn,
-.clear-all {
-    display: none;
-}
-
-.edit-mode .delete-event-btn,
-.edit-mode .delete-btn,
-.edit-mode .clear-all {
-    display: inline;
-}
 
 /* 底部 */
 .clear-all {
@@ -451,6 +452,30 @@ button {
     margin-top: 40px;
     padding-bottom: 20px;
     letter-spacing: 0.5px;
+}
+
+/* 編輯成員 chip */
+.member-chip-tag {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 6px 10px;
+    background-color: #e8f0fe;
+    color: var(--primary);
+    border-radius: 20px;
+    font-size: 14px;
+    border: 1px solid #c5d8f5;
+}
+
+.chip-remove {
+    cursor: pointer;
+    font-size: 16px;
+    line-height: 1;
+    color: #888;
+}
+
+.chip-remove:hover {
+    color: var(--danger);
 }
 
 /* 付款人均分切換 */
