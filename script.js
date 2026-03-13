@@ -454,6 +454,51 @@ function render() {
             </div>
         `).join('');
 
+    // 每人代墊統計
+    const paid = {};
+    members.forEach(m => paid[m] = 0);
+
+    expenses.forEach(item => {
+        if (paid[item.payer] !== undefined) paid[item.payer] += parseFloat(item.amount);
+    });
+
+    settlementDiv.innerHTML += `
+        <div class="spent-divider">每人代墊總額</div>
+        ${members.map(m => `
+            <div class="report-item">
+                <span>${m}</span>
+                <span>$${Math.round(paid[m])}</span>
+            </div>
+        `).join('')}
+    `;
+
+    // 每人實際花費統計
+    const spent = {};
+    members.forEach(m => spent[m] = 0);
+
+    expenses.forEach(item => {
+        const perPerson = parseFloat(item.amount) / item.participants.length;
+        item.participants.forEach(p => {
+            if (spent[p] !== undefined) spent[p] += perPerson;
+        });
+    });
+
+    const totalAmount = expenses.reduce((sum, item) => sum + parseFloat(item.amount), 0);
+
+    settlementDiv.innerHTML += `
+        <div class="spent-divider">每人應付總額</div>
+        ${members.map(m => `
+            <div class="report-item">
+                <span>${m}</span>
+                <span>$${Math.round(spent[m])}</span>
+            </div>
+        `).join('')}
+        <div class="report-item" style="border-top: 1px solid #ddd; margin-top: 8px; padding-top: 8px;">
+            <span><b>總計</b></span>
+            <span><b>$${Math.round(totalAmount)}</b></span>
+        </div>
+    `;
+
     // 按日期分組渲染帳目列表
     const grouped = {};
     expenses.forEach(item => {

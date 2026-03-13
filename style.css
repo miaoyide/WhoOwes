@@ -450,3 +450,12 @@ button {
 .edit-mode .clear-all {
     display: inline;
 }
+
+.spent-divider {
+    font-size: 12px;
+    font-weight: bold;
+    color: var(--secondary);
+    margin: 16px 0 6px 0;
+    padding-top: 12px;
+    border-top: 1px solid #ddd;
+}
