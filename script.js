@@ -7,6 +7,8 @@ let currentEventId = '';
 let expenses = [];
 let members = [];
 let selectedParticipants = [...members];
+let selectedPayers = [];
+let payerEqualSplit = true;
 let isDeleting = false;
 let modalMembers = [];
 let titleClickCount = 0;
@@ -250,29 +252,49 @@ async function fetchExpenses() {
         });
     }
 
+    if (selectedPayers.length === 0 && members.length > 0) {
+        selectedPayers = [members[0]];
+    } else {
+        selectedPayers = selectedPayers.filter(p => members.includes(p));
+        if (selectedPayers.length === 0 && members.length > 0) selectedPayers = [members[0]];
+    }
+
     render();
     hideLoading();
 }
 
 async function addExpense() {
     const btn = document.getElementById('submitBtn');
-    const payer = document.getElementById('itemPayerSelect').value;
+    const payers = [...selectedPayers];
     const desc = document.getElementById('itemDesc').value.trim();
     const amount = parseFloat(document.getElementById('itemAmount').value);
     const date = document.getElementById('itemDate').value;
-    const participants = Array.from(document.querySelectorAll('.member-chip.active'))
+    const participants = Array.from(document.querySelectorAll('#memberSelector .member-chip.active'))
         .map(chip => chip.innerText);
 
     if (!desc || isNaN(amount)) return alert("請填寫項目與金額");
     if (!currentEventId) return alert("請先選擇一個行程");
+    if (payers.length === 0) return alert("請至少選擇一位付款人");
     if (participants.length === 0) return alert("請至少選擇一位分攤成員");
+
+    let payerAmounts;
+    if (!payerEqualSplit && payers.length > 1) {
+        payerAmounts = payers.map(p => {
+            const input = document.querySelector(`.payer-amount-input[data-payer="${p}"]`);
+            return parseFloat(input?.value) || 0;
+        });
+        const total = Math.round(payerAmounts.reduce((s, a) => s + a, 0) * 100) / 100;
+        if (Math.abs(total - amount) > 0.01) return alert(`付款金額總和（$${total}）與總金額（$${amount}）不符`);
+    } else {
+        payerAmounts = payers.map(() => amount / payers.length);
+    }
 
     btn.disabled = true;
     btn.innerText = "同步中...";
 
     const { error } = await _supabase
         .from('expenses')
-        .insert([{ description: desc, amount, payer, participants, date, event_id: currentEventId }]);
+        .insert([{ description: desc, amount, payer: payers[0], payers, payer_amounts: payerAmounts, participants, date, event_id: currentEventId }]);
 
     if (error) {
         alert("同步失敗：" + error.message);
@@ -300,6 +322,15 @@ async function deleteItem(id, desc) {
     isDeleting = false;
 }
 
+function getPayerAmounts(item) {
+    const payers = item.payers || [item.payer];
+    if (item.payer_amounts && item.payer_amounts.length === payers.length) {
+        return { payers, amounts: item.payer_amounts };
+    }
+    const equal = parseFloat(item.amount) / payers.length;
+    return { payers, amounts: payers.map(() => equal) };
+}
+
 function render() {
     const selector = document.getElementById('memberSelector');
     selector.innerHTML = members.map(m =>
@@ -307,10 +338,7 @@ function render() {
     ).join('');
 
     updateParticipantLabel();
-
-    const payerSelect = document.getElementById('itemPayerSelect');
-    const prev = payerSelect.value;
-    payerSelect.innerHTML = members.map(m => `<option value="${m}" ${m === prev ? 'selected' : ''}>${m}</option>`).join('');
+    renderPayerChips();
 
     const list = document.getElementById('expenseList');
     list.innerHTML = '';
@@ -334,7 +362,9 @@ function render() {
     const balances = {};
     members.forEach(m => balances[m] = 0);
     expenses.forEach(item => {
-        if (balances[item.payer] !== undefined) balances[item.payer] += parseFloat(item.amount);
+        const { payers: ip, amounts: ia } = getPayerAmounts(item);
+        ip.forEach((p, i) => { if (balances[p] !== undefined) balances[p] += ia[i]; });
+
         const perPerson = item.amount / item.participants.length;
         item.participants.forEach(p => {
             if (balances[p] !== undefined) balances[p] -= perPerson;
@@ -376,7 +406,9 @@ function render() {
     const spent = {};
     members.forEach(m => { paid[m] = 0; spent[m] = 0; });
     expenses.forEach(item => {
-        if (paid[item.payer] !== undefined) paid[item.payer] += parseFloat(item.amount);
+        const { payers: ip, amounts: ia } = getPayerAmounts(item);
+        ip.forEach((p, i) => { if (paid[p] !== undefined) paid[p] += ia[i]; });
+
         const perPerson = parseFloat(item.amount) / item.participants.length;
         item.participants.forEach(p => {
             if (spent[p] !== undefined) spent[p] += perPerson;
@@ -429,7 +461,7 @@ function render() {
             rows.push(`<div class="list-item">
                 <div class="item-info">
                     <div class="item-desc">${item.description}</div>
-                    <div class="item-sub">買單：<b>${item.payer}</b> <br> ${item.participants.length} 人分攤: ${item.participants.join(', ')}</div>
+                    <div class="item-sub">買單：<b>${(item.payers || [item.payer]).join('、')}</b> <br> ${item.participants.length} 人分攤: ${item.participants.join(', ')}</div>
                 </div>
                 <div class="item-price">$${Math.round(item.amount)}<span class="delete-btn" onclick="deleteItem(${item.id}, '${item.description}')">×</span></div>
             </div>`);
@@ -443,6 +475,73 @@ function switchTab(tab, e) {
     e.target.classList.add('active');
     document.getElementById('settlementReport').style.display = tab === 'settlement' ? 'block' : 'none';
     document.getElementById('detailReport').style.display = tab === 'detail' ? 'block' : 'none';
+}
+
+function renderPayerChips() {
+    const payerSelector = document.getElementById('payerSelector');
+    if (!payerSelector) return;
+
+    let html = members.map(m =>
+        `<div class="payer-chip member-chip ${selectedPayers.includes(m) ? 'active' : ''}" onclick="togglePayer('${m}')">${m}</div>`
+    ).join('');
+
+    if (selectedPayers.length > 1) {
+        html += `
+            <div class="payer-split-toggle">
+                <label>
+                    <input type="checkbox" id="payerEqualSplitCheck" ${payerEqualSplit ? 'checked' : ''} onchange="togglePayerEqualSplit()">
+                    均分
+                </label>
+            </div>`;
+
+        if (!payerEqualSplit) {
+            html += `<div class="payer-amounts">` +
+                selectedPayers.map(p =>
+                    `<div class="payer-amount-row">
+                        <span class="payer-amount-name">${p}</span>
+                        <input type="number" class="payer-amount-input" data-payer="${p}" placeholder="$" oninput="updatePayerAmountHint()">
+                    </div>`
+                ).join('') +
+                `<div class="payer-amount-hint" id="payerAmountHint"></div>` +
+            `</div>`;
+        }
+    }
+
+    payerSelector.innerHTML = html;
+    updatePayerLabel();
+}
+
+function togglePayer(name) {
+    if (selectedPayers.includes(name)) {
+        if (selectedPayers.length > 1) selectedPayers = selectedPayers.filter(p => p !== name);
+    } else {
+        selectedPayers.push(name);
+    }
+    renderPayerChips();
+}
+
+function togglePayerEqualSplit() {
+    payerEqualSplit = document.getElementById('payerEqualSplitCheck').checked;
+    renderPayerChips();
+}
+
+function updatePayerAmountHint() {
+    const totalInput = parseFloat(document.getElementById('itemAmount').value) || 0;
+    const filled = Array.from(document.querySelectorAll('.payer-amount-input'))
+        .reduce((sum, el) => sum + (parseFloat(el.value) || 0), 0);
+    const remaining = Math.round((totalInput - filled) * 100) / 100;
+    const hint = document.getElementById('payerAmountHint');
+    if (!hint) return;
+    hint.textContent = remaining === 0 ? '✓ 金額已分配完畢' : `剩餘未分配：$${remaining}`;
+    hint.style.color = remaining === 0 ? 'var(--success)' : 'var(--danger)';
+}
+
+function updatePayerLabel() {
+    const count = selectedPayers.length;
+    const label = count <= 1 ? '付款人（可複選）'
+        : payerEqualSplit ? `付款人（已選 ${count} 人，均分）`
+        : `付款人（已選 ${count} 人，自訂金額）`;
+    document.getElementById('payerLabel').innerText = label;
 }
 
 function updateParticipantLabel() {

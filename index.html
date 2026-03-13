@@ -44,15 +44,15 @@
                     <input type="date" id="itemDate" onclick="this.showPicker()">
                 </div>
                 <div class="input-row">
-                    <label>付款人</label>
-                    <select id="itemPayerSelect"></select>
-                </div>
-                <div class="input-row">
                     <label>項目 / 金額</label>
                     <div class="amount-row">
                         <input type="text" id="itemDesc" placeholder="項目" class="flex-2">
                         <input type="number" id="itemAmount" placeholder="$" class="flex-1">
                     </div>
+                </div>
+                <div class="input-row">
+                    <label id="payerLabel">付款人</label>
+                    <div id="payerSelector" class="member-checkbox-group"></div>
                 </div>
                 <div class="input-row">
                     <label id="participantLabel">分攤成員（已選 0 人）</label>
