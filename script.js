@@ -14,6 +14,14 @@ let titleClickCount = 0;
 let titleClickTimer = null;
 let editMode = false;
 
+function showLoading() {
+    document.getElementById('loadingOverlay').classList.remove('hidden');
+}
+
+function hideLoading() {
+    document.getElementById('loadingOverlay').classList.add('hidden');
+}
+
 function handleTitleClick() {
     titleClickCount++;
     clearTimeout(titleClickTimer);
@@ -35,6 +43,7 @@ function toggleEditMode() {
 }
 
 window.onload = async function () {
+    showLoading();
     document.getElementById('itemDate').value = new Date().toISOString().split('T')[0];
     await fetchEvents(); // 先抓行程列表
     await fetchExpenses(); // 初始載入雲端資料
@@ -50,6 +59,7 @@ window.onload = async function () {
         .subscribe();
 
     render();
+    hideLoading();
 };
 
 // 抓取所有行程
@@ -77,6 +87,7 @@ async function fetchEvents() {
     }
 
     renderEventGrid(data);
+    hideLoading();
 }
 
 function showPage(page) {
@@ -84,6 +95,7 @@ function showPage(page) {
     const detail = document.getElementById('detailPage');
 
     if (page === 'home') {
+        showLoading();
         home.style.display = 'block';   // 顯示首頁
         detail.style.display = 'none';  // 隱藏詳情
         fetchEvents(); // 回首頁時刷新列表
@@ -131,8 +143,9 @@ async function renderEventGrid(events) {
 
 // 封裝進入行程的動作
 function enterEvent(id) {
+    showLoading();
     currentEventId = id;
-    
+
     // 同步下拉選單
     const select = document.getElementById('eventSelect');
     if (select) select.value = id;
@@ -285,8 +298,8 @@ function updatePayerSelect() {
 async function fetchExpenses() {
     const select = document.getElementById('eventSelect');
     if (!select || !select.value) return;
-
-    currentEventId = select.value;
+        hideLoading();
+        currentEventId = select.value;
 
     // 同時抓該行程的 members 欄位和消費記錄
     const [{ data: eventData }, { data, error }] = await Promise.all([
@@ -315,6 +328,7 @@ async function fetchExpenses() {
     render();
     renderMemberSelectors();
     updatePayerSelect();
+    hideLoading();
 }
 
 async function addExpense() {
@@ -420,7 +434,7 @@ function render() {
         });
     });
 
-    // 結算建議
+    // 結清建議 - 補上遺漏的 transactions 計算
     const creditors = [];
     const debtors = [];
 
@@ -445,7 +459,17 @@ function render() {
         if (debtor.amount === 0) debtors.shift();
     }
 
-    settlementDiv.innerHTML = transactions.length === 0
+    document.getElementById('settlementReport').innerHTML = transactions.length === 0
+        ? '<div class="report-item">✅ 大家都結清了！</div>'
+        : transactions.map(t => `
+            <div class="report-item">
+                <span><b>${t.from}</b> → <b>${t.to}</b></span>
+                <span class="status-minus">付 $${t.amount}</span>
+            </div>
+    `).join('');
+
+    // 結清建議
+    document.getElementById('settlementReport').innerHTML = transactions.length === 0
         ? '<div class="report-item">✅ 大家都結清了！</div>'
         : transactions.map(t => `
             <div class="report-item">
@@ -454,28 +478,30 @@ function render() {
             </div>
         `).join('');
 
-    // 每人代墊統計
+    // 代墊總額
     const paid = {};
     members.forEach(m => paid[m] = 0);
-
     expenses.forEach(item => {
         if (paid[item.payer] !== undefined) paid[item.payer] += parseFloat(item.amount);
     });
+    const totalAmount = expenses.reduce((sum, item) => sum + parseFloat(item.amount), 0);
 
-    settlementDiv.innerHTML += `
-        <div class="spent-divider">每人代墊總額</div>
+    document.getElementById('paidReport').innerHTML = `
         ${members.map(m => `
             <div class="report-item">
                 <span>${m}</span>
                 <span>$${Math.round(paid[m])}</span>
             </div>
         `).join('')}
+        <div class="report-item" style="border-top: 1px solid #ddd; margin-top: 8px; padding-top: 8px;">
+            <span><b>總計</b></span>
+            <span><b>$${Math.round(totalAmount)}</b></span>
+        </div>
     `;
 
-    // 每人實際花費統計
+    // 應付總額
     const spent = {};
     members.forEach(m => spent[m] = 0);
-
     expenses.forEach(item => {
         const perPerson = parseFloat(item.amount) / item.participants.length;
         item.participants.forEach(p => {
@@ -483,10 +509,7 @@ function render() {
         });
     });
 
-    const totalAmount = expenses.reduce((sum, item) => sum + parseFloat(item.amount), 0);
-
-    settlementDiv.innerHTML += `
-        <div class="spent-divider">每人應付總額</div>
+    document.getElementById('spentReport').innerHTML = `
         ${members.map(m => `
             <div class="report-item">
                 <span>${m}</span>
@@ -519,6 +542,15 @@ function render() {
             </div>`;
         });
     });
+}
+
+function switchTab(tab) {
+    document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+    event.target.classList.add('active');
+
+    document.getElementById('settlementReport').style.display = tab === 'settlement' ? 'block' : 'none';
+    document.getElementById('paidReport').style.display = tab === 'paid' ? 'block' : 'none';
+    document.getElementById('spentReport').style.display = tab === 'spent' ? 'block' : 'none';
 }
 
 function toggleParticipant(name) {

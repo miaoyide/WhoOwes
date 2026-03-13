@@ -459,3 +459,56 @@ button {
     padding-top: 12px;
     border-top: 1px solid #ddd;
 }
+
+.tab-bar {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 16px;
+}
+
+.tab-btn {
+    flex: 1;
+    padding: 8px 0;
+    font-size: 13px;
+    font-weight: bold;
+    background: #e8f0fe;
+    color: var(--primary);
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    margin: 0;
+}
+
+.tab-btn.active {
+    background: var(--primary);
+    color: white;
+}
+
+.loading-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(255,255,255,0.85);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 200;
+    transition: opacity 0.3s ease;
+}
+
+.loading-overlay.hidden {
+    opacity: 0;
+    pointer-events: none;
+}
+
+.spinner {
+    width: 36px;
+    height: 36px;
+    border: 4px solid #e8f0fe;
+    border-top-color: var(--primary);
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}

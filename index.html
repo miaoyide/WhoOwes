@@ -11,6 +11,9 @@
 </head>
 
 <body>
+    <div id="loadingOverlay" class="loading-overlay">
+        <div class="spinner"></div>
+    </div>
     <div id="homePage" class="container">
         <header>
             <h1 onclick="handleTitleClick()">WhoOwesYou</h1>
@@ -54,7 +57,14 @@
             </div>
 
             <div class="summary-card">
+                <div class="tab-bar">
+                    <button class="tab-btn active" onclick="switchTab('settlement')">結清建議</button>
+                    <button class="tab-btn" onclick="switchTab('paid')">代墊總額</button>
+                    <button class="tab-btn" onclick="switchTab('spent')">應付總額</button>
+                </div>
                 <div id="settlementReport"></div>
+                <div id="paidReport" style="display:none;"></div>
+                <div id="spentReport" style="display:none;"></div>
             </div>
             <div id="expenseList"></div>
             <div class="clear-all" onclick="clearData()">刪除行程</div>
