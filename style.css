@@ -440,7 +440,6 @@ button {
 }
 
 .delete-event-btn,
-.delete-btn,
 .clear-all {
     display: none;
 }
