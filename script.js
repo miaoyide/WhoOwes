@@ -581,10 +581,24 @@ function render() {
     Object.keys(grouped).sort((a, b) => b.localeCompare(a)).forEach(date => {
         rows.push(`<div class="date-group-header">${date}</div>`);
         grouped[date].forEach(item => {
+            const { payers: ip, amounts: ia } = getPayerAmounts(item);
+            const { participants: iparts, amounts: partAmounts } = getParticipantAmounts(item);
+
+            const payerEq = ip.every((_, i) => Math.abs(ia[i] - ia[0]) < 0.01);
+            const partEq = iparts.every((_, i) => Math.abs(partAmounts[i] - partAmounts[0]) < 0.01);
+
+            const payerStr = payerEq
+                ? `<b>${ip.join('、')}</b>`
+                : ip.map((p, i) => `<b>${p}</b> $${Math.round(ia[i])}`).join('、');
+
+            const partStr = partEq
+                ? iparts.join('、')
+                : iparts.map((p, i) => `<b>${p}</b> $${Math.round(partAmounts[i])}`).join('、');
+
             rows.push(`<div class="list-item">
                 <div class="item-info">
                     <div class="item-desc">${item.description}</div>
-                    <div class="item-sub">買單：<b>${(item.payers || [item.payer]).join('、')}</b> <br> ${item.participants.length} 人分攤: ${item.participants.join(', ')}</div>
+                    <div class="item-sub">買單：${payerStr}<br>${iparts.length} 人${partEq ? '均分' : '分攤'}：${partStr}</div>
                 </div>
                 <div class="item-price">$${Math.round(item.amount)}<span class="delete-btn" onclick="deleteItem(${item.id}, '${item.description}')">×</span></div>
             </div>`);
